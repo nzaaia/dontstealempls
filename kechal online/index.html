@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kechal Game</title>
+  <meta name="theme-color" content="#0d1226">
+  <meta name="description" content="Play Kechal card game with friends">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🃏</text></svg>">
+  <style>
+    :root {
+      --pass-color: #66551d;
+      --draw-color: #1d6625;
+      --kechal-color: #5c1d1d;
+      --kechal-active: #3a1212;
+      --card-width: 35px;
+      --card-height: 50px;
+      --avatar-size: 70px;
+      --player-font-size: 1.1rem;
+      --button-font-size: 1.3rem;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0d1226;
+      color: white;
+      text-align: center;
+      padding: 0 10px;
+      overflow-x: hidden;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #d3d3d3;
+      color: #111;
+      padding: 15px;
+      font-size: 1.8rem;
+      font-weight: bold;
+      position: relative;
+    }
+
+    .edit-names-btn {
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #444;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 15px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    .game-container {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      max-width: 900px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .players-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin: 25px 0;
+      flex: 1;
+    }
+
+    .player {
+      background: none;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .player.hidden {
+      display: none;
+    }
+
+    .avatar {
+      width: var(--avatar-size);
+      height: var(--avatar-size);
+      margin: 0 auto 8px;
+      border: 3px solid #123;
+      border-radius: 10px;
+      background-size: cover;
+      background-position: center;
+    }
+
+    .player-name {
+      margin: 8px 0;
+      font-size: var(--player-font-size);
+      cursor: pointer;
+      min-height: 1.4rem;
+      font-weight: bold;
+    }
+
+    .tableau {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 5px;
+      margin-top: 8px;
+      min-height: 55px;
+      position: relative;
+    }
+
+    .card {
+      width: var(--card-width);
+      height: var(--card-height);
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: bold;
+      color: white;
+      transition: all 0.5s ease;
+      position: relative;
+    }
+
+    .card.stealing {
+      position: fixed;
+      z-index: 100;
+      animation: slideCard 0.8s ease-in-out forwards;
+      pointer-events: none;
+    }
+
+    @keyframes slideCard {
+      0% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.2) rotate(5deg);
+        opacity: 0.9;
+      }
+      100% {
+        transform: translate(var(--target-x), var(--target-y)) scale(1) rotate(0deg);
+        opacity: 1;
+      }
+    }
+
+    .controls-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 15px 0 25px;
+    }
+
+    .main-controls {
+      display: flex;
+      gap: 25px;
+      margin-bottom: 15px;
+    }
+
+    .game-button {
+      padding: 15px 30px;
+      font-size: var(--button-font-size);
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.1s ease;
+      box-shadow: 0 5px 0 rgba(0, 0, 0, 0.3);
+      min-width: 120px;
+    }
+
+    .game-button:active {
+      transform: translateY(5px);
+      box-shadow: 0 0 0 rgba(0, 0, 0, 0.3);
+    }
+
+    #passBtn {
+      background: var(--pass-color);
+      color: white;
+    }
+
+    #drawBtn {
+      background: var(--draw-color);
+      color: white;
+    }
+
+    #kechalBtn {
+      background: var(--kechal-color);
+      color: white;
+    }
+
+    #kechalBtn.active {
+      background: var(--kechal-active);
+    }
+
+    #deckInfo {
+      margin: 15px;
+      font-size: 1.3rem;
+      font-weight: bold;
+    }
+
+    #leaderboard {
+      background: #111;
+      padding: 25px;
+      border-radius: 10px;
+      margin: 25px auto;
+      max-width: 350px;
+      display: none;
+    }
+
+    .leaderboard-item {
+      display: flex;
+      justify-content: space-between;
+      margin: 12px 0;
+      padding: 8px;
+      border-radius: 5px;
+      font-size: 1.1rem;
+    }
+
+    .leaderboard-item:nth-child(1) {
+      background: gold;
+      color: black;
+      font-weight: bold;
+    }
+
+    .leaderboard-item:nth-child(2) {
+      background: silver;
+      color: black;
+    }
+
+    .leaderboard-item:nth-child(3) {
+      background: #cd7f32;
+      color: black;
+    }
+
+    #reshuffleBtn {
+      margin-top: 20px;
+      padding: 12px 25px;
+      font-size: 1.1rem;
+      background: #444;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
+      position: relative;
+      transition: all 0.1s ease;
+    }
+
+    #reshuffleBtn:active {
+      transform: translateY(4px);
+      box-shadow: 0 0 0 rgba(0, 0, 0, 0.3);
+    }
+
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: #222;
+      padding: 25px;
+      border-radius: 10px;
+      max-width: 90%;
+      width: 450px;
+      text-align: center;
+    }
+
+    .name-inputs {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin: 25px 0;
+    }
+
+    .name-input {
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #555;
+      background: #333;
+      color: white;
+      font-size: 1rem;
+    }
+
+    .modal-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 25px;
+    }
+
+    .modal-button {
+      padding: 12px 25px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 1rem;
+    }
+
+    #saveNamesBtn {
+      background: #1d6625;
+      color: white;
+    }
+
+    #cancelNamesBtn {
+      background: #66551d;
+      color: white;
+    }
+
+    /* Busted popup */
+    #bustedPopup {
+      background: #5c1d1d;
+      color: white;
+      font-size: 2rem;
+      font-weight: bold;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 25px rgba(255, 0, 0, 0.5);
+    }
+
+    /* Game Over popup */
+    #gameOverPopup {
+      background: #1d3d66;
+      color: white;
+      font-size: 1.8rem;
+      font-weight: bold;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 0 25px rgba(0, 100, 255, 0.5);
+    }
+
+    /* Player Setup */
+    .player-setup {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin: 20px 0;
+    }
+
+    .player-count-selector {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .player-count-btn {
+      padding: 10px 20px;
+      background: #333;
+      color: white;
+      border: 2px solid #555;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1.1rem;
+    }
+
+    .player-count-btn.active {
+      background: #1d6625;
+      border-color: #2ecc71;
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+      :root {
+        --card-width: 30px;
+        --card-height: 45px;
+        --avatar-size: 60px;
+        --player-font-size: 1rem;
+        --button-font-size: 1.1rem;
+      }
+      
+      header {
+        font-size: 1.5rem;
+        padding: 12px;
+      }
+      
+      .players-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+      }
+      
+      .player {
+        padding: 12px;
+      }
+      
+      .player-name {
+        font-size: var(--player-font-size);
+      }
+      
+      .main-controls {
+        gap: 20px;
+      }
+      
+      .game-button {
+        padding: 12px 25px;
+        font-size: var(--button-font-size);
+        min-width: 100px;
+      }
+      
+      #deckInfo {
+        font-size: 1.1rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      :root {
+        --card-width: 25px;
+        --card-height: 40px;
+        --avatar-size: 50px;
+        --player-font-size: 0.9rem;
+        --button-font-size: 1rem;
+      }
+      
+      header {
+        font-size: 1.3rem;
+        padding: 10px;
+      }
+      
+      .edit-names-btn {
+        font-size: 0.8rem;
+        padding: 6px 12px;
+      }
+      
+      .players-grid {
+        gap: 10px;
+      }
+      
+      .player {
+        padding: 8px;
+      }
+      
+      .main-controls {
+        gap: 15px;
+      }
+      
+      .game-button {
+        padding: 10px 20px;
+        font-size: var(--button-font-size);
+        min-width: 90px;
+      }
+      
+      .modal-content {
+        width: 95%;
+        padding: 20px;
+      }
+      
+      #bustedPopup {
+        font-size: 1.7rem;
+        padding: 25px;
+      }
+      
+      #gameOverPopup {
+        font-size: 1.5rem;
+        padding: 20px;
+      }
+    }
+
+    /* Large screen scaling */
+    @media (min-width: 1200px) {
+      :root {
+        --card-width: 40px;
+        --card-height: 55px;
+        --avatar-size: 80px;
+        --player-font-size: 1.2rem;
+        --button-font-size: 1.4rem;
+      }
+      
+      .game-container {
+        max-width: 1000px;
+      }
+      
+      header {
+        font-size: 2rem;
+        padding: 20px;
+      }
+      
+      .players-grid {
+        gap: 25px;
+        margin: 30px 0;
+      }
+      
+      .player {
+        padding: 20px;
+      }
+      
+      .game-button {
+        padding: 18px 35px;
+      }
+    }
+
+    /* PWA specific styles */
+    #installPrompt {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: white;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      z-index: 1001;
+      text-align: center;
+    }
+
+    #installBtn {
+      background: #1d6625;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 5px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    Kechal Game
+    <button class="edit-names-btn" id="editNamesBtn">Edit Names</button>
+  </header>
+
+  <div class="game-container">
+    <!-- Player Setup Screen -->
+    <div class="modal" id="setupModal" style="display: flex;">
+      <div class="modal-content">
+        <h2>Game Setup</h2>
+        <p>Select number of players:</p>
+        <div class="player-count-selector">
+          <button class="player-count-btn" data-count="2">2 Players</button>
+          <button class="player-count-btn" data-count="3">3 Players</button>
+          <button class="player-count-btn" data-count="4">4 Players</button>
+          <button class="player-count-btn" data-count="5">5 Players</button>
+          <button class="player-count-btn" data-count="6" class="active">6 Players</button>
+        </div>
+        <div class="modal-buttons">
+          <button id="startGameBtn" class="modal-button">Start Game</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="players-grid" id="board"></div>
+    
+    <div class="controls-container">
+      <div class="main-controls">
+        <button id="passBtn" class="game-button">PASS</button>
+        <button id="drawBtn" class="game-button">DRAW</button>
+      </div>
+      <button id="kechalBtn" class="game-button">KECHAL</button>
+    </div>
+
+    <div id="deckInfo">Cards remaining: 60</div>
+    <div id="leaderboard"></div>
+  </div>
+
+  <!-- Name Editor Modal -->
+  <div class="modal" id="nameEditorModal">
+    <div class="modal-content">
+      <h2>Edit Player Names</h2>
+      <div class="name-inputs" id="nameInputs"></div>
+      <div class="modal-buttons">
+        <button id="saveNamesBtn" class="modal-button">Save Names</button>
+        <button id="cancelNamesBtn" class="modal-button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Busted Popup -->
+  <div class="modal" id="bustedModal">
+    <div class="modal-content" id="bustedPopup"></div>
+  </div>
+
+  <!-- Game Over Popup -->
+  <div class="modal" id="gameOverModal">
+    <div class="modal-content" id="gameOverPopup">
+      Game Over!<br>
+      <span style="font-size: 1.2rem;">See scoreboard below</span>
+    </div>
+  </div>
+
+  <!-- PWA Install Prompt -->
+  <div id="installPrompt">
+    <p>Install Kechal Game for a better experience!</p>
+    <button id="installBtn">Install</button>
+  </div>
+
+  <!-- Audio elements for sound effects -->
+  <audio id="drawSound" preload="auto">
+    <source src="https://assets.mixkit.co/sfx/preview/mixkit-card-draw-476.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="stealSound" preload="auto">
+    <source src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="bustedSound" preload="auto">
+    <source src="https://assets.mixkit.co/sfx/preview/mixkit-funny-fail-low-tone-2876.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="gameOverSound" preload="auto">
+    <source src="https://assets.mixkit.co/sfx/preview/mixkit-game-show-suspense-waiting-667.mp3" type="audio/mpeg">
+  </audio>
+
+  <script>
+    // PWA Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => {
+            console.log('SW registered: ', registration);
+          })
+          .catch(registrationError => {
+            console.log('SW registration failed: ', registrationError);
+          });
+      });
+    }
+
+    // PWA Install Prompt
+    let deferredPrompt;
+    const installPrompt = document.getElementById('installPrompt');
+    const installBtn = document.getElementById('installBtn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installPrompt.style.display = 'block';
+    });
+
+    installBtn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          installPrompt.style.display = 'none';
+        }
+        deferredPrompt = null;
+      }
+    });
+
+    // Avatar images (using placeholder images - replace with your own)
+    const avatarImages = [
+      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face'
+    ];
+
+    // Game Logic
+    const colors = {
+      1: "red",
+      2: "teal",
+      3: "lightgreen",
+      4: "pink",
+      5: "purple",
+      7: "yellow",
+      8: "brown",
+      9: "blue",
+      10: "black"
+    };
+
+    // Sound effects
+    const drawSound = document.getElementById('drawSound');
+    const stealSound = document.getElementById('stealSound');
+    const bustedSound = document.getElementById('bustedSound');
+    const gameOverSound = document.getElementById('gameOverSound');
+
+    // Initialize players array
+    let players = [];
+    let numberOfPlayers = 6; // Default
+
+    let currentPlayer = 0;
+    let deck = [];
+    let turnCards = [];
+    let safeDraws = 0;
+    let lastWinner = 0;
+
+    const boardEl = document.getElementById("board");
+    const passBtn = document.getElementById("passBtn");
+    const drawBtn = document.getElementById("drawBtn");
+    const kechalBtn = document.getElementById("kechalBtn");
+    const deckInfo = document.getElementById("deckInfo");
+    const leaderboardEl = document.getElementById("leaderboard");
+    const nameEditorModal = document.getElementById("nameEditorModal");
+    const nameInputs = document.getElementById("nameInputs");
+    const saveNamesBtn = document.getElementById("saveNamesBtn");
+    const cancelNamesBtn = document.getElementById("cancelNamesBtn");
+    const editNamesBtn = document.getElementById("editNamesBtn");
+    const bustedModal = document.getElementById("bustedModal");
+    const bustedPopup = document.getElementById("bustedPopup");
+    const gameOverModal = document.getElementById("gameOverModal");
+    const setupModal = document.getElementById("setupModal");
+    const startGameBtn = document.getElementById("startGameBtn");
+    const playerCountBtns = document.querySelectorAll('.player-count-btn');
+
+    // Player count selection
+    playerCountBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        playerCountBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        numberOfPlayers = parseInt(btn.dataset.count);
+      });
+    });
+
+    // Start game button
+    startGameBtn.addEventListener('click', () => {
+      setupModal.style.display = 'none';
+      initializePlayers();
+      initDeck();
+      startTurn();
+    });
+
+    function initializePlayers() {
+      // Try to load player names from localStorage
+      try {
+        const savedPlayers = localStorage.getItem('kechalPlayers');
+        if (savedPlayers) {
+          const allPlayers = JSON.parse(savedPlayers);
+          players = allPlayers.slice(0, numberOfPlayers);
+        } else {
+          players = Array.from({length: numberOfPlayers}, (_, i) => ({
+            name: `Player ${i+1}`,
+            tableau: [],
+            score: [],
+            avatar: avatarImages[i % avatarImages.length]
+          }));
+        }
+      } catch (e) {
+        players = Array.from({length: numberOfPlayers}, (_, i) => ({
+          name: `Player ${i+1}`,
+          tableau: [],
+          score: [],
+          avatar: avatarImages[i % avatarImages.length]
+        }));
+      }
+      
+      // Assign random avatars if not already assigned
+      players.forEach((player, index) => {
+        if (!player.avatar) {
+          player.avatar = avatarImages[index % avatarImages.length];
+        }
+      });
+    }
+
+    function initDeck() {
+      deck = [];
+      for (let n of [1,2,3,4,5,7,8,9,10]) {
+        for (let i=0;i<6;i++) {
+          deck.push(n);
+        }
+      }
+      deck = shuffle(deck);
+      deckInfo.textContent = "Cards remaining: " + deck.length;
+      leaderboardEl.style.display = "none";
+      gameOverModal.style.display = "none";
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function render() {
+      boardEl.innerHTML = "";
+      players.forEach((p, i) => {
+        const div = document.createElement("div");
+        div.className = "player";
+        div.innerHTML = `
+          <div class="avatar" style="background-image: url('${p.avatar}')"></div>
+          <div class="player-name" data-player-index="${i}">${p.name}${i===currentPlayer ? " (Your turn)" : ""}</div>
+          <div class="tableau" id="tableau-${i}"></div>
+        `;
+        boardEl.appendChild(div);
+
+        const tableauEl = div.querySelector(".tableau");
+        p.tableau.forEach(card => {
+          const c = document.createElement("div");
+          c.className = "card";
+          c.style.background = colors[card] || "gray";
+          c.textContent = card;
+          tableauEl.appendChild(c);
+        });
+      });
+      deckInfo.textContent = "Cards remaining: " + deck.length;
+    }
+
+    function startTurn() {
+      let p = players[currentPlayer];
+      if (p.tableau.length > 0) {
+        p.score.push(...p.tableau);
+        p.tableau = [];
+      }
+      turnCards = [];
+      safeDraws = 0;
+      kechalBtn.classList.remove("active");
+      render();
+    }
+
+    function drawCard() {
+      if (deck.length === 0) {
+        endGame();
+        return;
+      }
+      const card = deck.pop();
+      let p = players[currentPlayer];
+
+      // Play draw sound
+      drawSound.currentTime = 0;
+      drawSound.play();
+
+      if (safeDraws >= 3 && turnCards.includes(card)) {
+        p.tableau.push(card);
+        render();
+        showBustedPopup(card);
+        turnCards = [];
+        endTurn(true);
+        return;
+      }
+
+      turnCards.push(card);
+      p.tableau.push(card);
+      safeDraws++;
+
+      // Check for steal possibility
+      let stealPossible = players.some((other, i) =>
+        i !== currentPlayer && other.tableau.includes(card)
+      );
+      
+      if (stealPossible) {
+        kechalBtn.classList.add("active");
+      } else {
+        kechalBtn.classList.remove("active");
+      }
+
+      render();
+      
+      // Check if this was the last card
+      if (deck.length === 0) {
+        setTimeout(endGame, 500);
+      }
+    }
+
+    function showBustedPopup(card) {
+      bustedPopup.textContent = `BUSTED!! on ${card}`;
+      bustedModal.style.display = "flex";
+      
+      // Play busted sound
+      bustedSound.currentTime = 0;
+      bustedSound.play();
+      
+      // Close on tap/click anywhere
+      const closeBusted = () => {
+        bustedModal.style.display = "none";
+        document.removeEventListener('click', closeBusted);
+        document.removeEventListener('touchstart', closeBusted);
+      };
+      
+      setTimeout(() => {
+        document.addEventListener('click', closeBusted);
+        document.addEventListener('touchstart', closeBusted);
+      }, 100);
+    }
+
+    function passTurn() {
+      endTurn(false);
+    }
+
+    function endTurn(busted) {
+      let p = players[currentPlayer];
+      if (busted) {
+        p.tableau = [];
+      }
+      turnCards = [];
+      kechalBtn.classList.remove("active");
+      currentPlayer = (currentPlayer+1) % players.length;
+      startTurn();
+    }
+
+    function doKechal() {
+      const lastCard = turnCards[turnCards.length-1];
+      let stolenCards = [];
+      
+      // Collect all cards to steal
+      players.forEach((other,i) => {
+        if (i !== currentPlayer) {
+          other.tableau.forEach(card => {
+            if (card === lastCard) {
+              stolenCards.push({card, fromPlayer: i});
+            }
+          });
+        }
+      });
+      
+      // Remove cards from other players
+      players.forEach((other,i) => {
+        if (i !== currentPlayer) {
+          other.tableau = other.tableau.filter(c => c !== lastCard);
+        }
+      });
+      
+      // Play steal sound
+      if (stolenCards.length > 0) {
+        stealSound.currentTime = 0;
+        stealSound.play();
+      }
+      
+      // Animate card stealing
+      if (stolenCards.length > 0) {
+        animateCardStealing(stolenCards);
+      } else {
+        render();
+      }
+      
+      kechalBtn.classList.remove("active");
+    }
+
+    function animateCardStealing(stolenCards) {
+      // First, remove the cards from other players visually
+      render();
+      
+      // Wait a bit for the DOM to update
+      setTimeout(() => {
+        // Get current player's tableau position for animation target
+        const currentPlayerTableau = document.getElementById(`tableau-${currentPlayer}`);
+        const currentPlayerRect = currentPlayerTableau.getBoundingClientRect();
+        
+        // Animate each stolen card
+        stolenCards.forEach((stolen, index) => {
+          // Create a temporary card element for animation
+          const tempCard = document.createElement("div");
+          tempCard.className = "card stealing";
+          tempCard.style.background = colors[stolen.card] || "gray";
+          tempCard.textContent = stolen.card;
+          
+          // Find the position where the card should start (from the original player)
+          const fromPlayerTableau = document.getElementById(`tableau-${stolen.fromPlayer}`);
+          const fromPlayerRect = fromPlayerTableau.getBoundingClientRect();
+          
+          // Position the temp card at the source
+          tempCard.style.position = "fixed";
+          tempCard.style.left = `${fromPlayerRect.left + (fromPlayerRect.width / 2) - (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--card-width')) / 2)}px`;
+          tempCard.style.top = `${fromPlayerRect.top + (fromPlayerRect.height / 2) - (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--card-height')) / 2)}px`;
+          
+          // Calculate the target position
+          const targetX = currentPlayerRect.left + (currentPlayerRect.width / 2) - (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--card-width')) / 2) - fromPlayerRect.left;
+          const targetY = currentPlayerRect.top + (currentPlayerRect.height / 2) - (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--card-height')) / 2) - fromPlayerRect.top;
+          
+          // Set CSS custom properties for animation
+          tempCard.style.setProperty('--target-x', `${targetX}px`);
+          tempCard.style.setProperty('--target-y', `${targetY}px`);
+          
+          // Add to document
+          document.body.appendChild(tempCard);
+          
+          // After animation completes, add the card to current player and remove temp card
+          setTimeout(() => {
+            players[currentPlayer].tableau.push(stolen.card);
+            tempCard.remove();
+            
+            // Final render after all animations
+            if (index === stolenCards.length - 1) {
+              setTimeout(() => {
+                render();
+              }, 100);
+            }
+          }, 800);
+        });
+      }, 50);
+    }
+
+    function endGame() {
+      // Play game over sound
+      gameOverSound.currentTime = 0;
+      gameOverSound.play();
+      
+      // Show game over popup
+      gameOverModal.style.display = "flex";
+      
+      // Close game over popup on tap/click anywhere
+      const closeGameOver = () => {
+        gameOverModal.style.display = "none";
+        document.removeEventListener('click', closeGameOver);
+        document.removeEventListener('touchstart', closeGameOver);
+      };
+      
+      setTimeout(() => {
+        document.addEventListener('click', closeGameOver);
+        document.addEventListener('touchstart', closeGameOver);
+      }, 100);
+      
+      let ranking = players.map((p, index) => ({
+        name: p.name,
+        total: p.score.reduce((a,b)=>a+b,0),
+        index: index
+      }));
+      ranking.sort((a,b)=>b.total-a.total);
+      lastWinner = ranking[0].index;
+
+      leaderboardEl.style.display = "block";
+      leaderboardEl.innerHTML = "<h3>Leaderboard</h3>";
+      
+      ranking.forEach((r,i) => {
+        const item = document.createElement("div");
+        item.className = "leaderboard-item";
+        item.innerHTML = `
+          <span>${i+1}. ${r.name}</span>
+          <span>${r.total}</span>
+        `;
+        leaderboardEl.appendChild(item);
+      });
+      
+      const reshuffleBtn = document.createElement("button");
+      reshuffleBtn.id = "reshuffleBtn";
+      reshuffleBtn.textContent = "Reshuffle";
+      reshuffleBtn.addEventListener("click", restartGame);
+      leaderboardEl.appendChild(reshuffleBtn);
+    }
+
+    function restartGame() {
+      setupModal.style.display = "flex";
+    }
+
+    // Name editing functionality
+    function openNameEditor() {
+      nameInputs.innerHTML = '';
+      players.forEach((player, index) => {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'name-input';
+        input.value = player.name;
+        input.placeholder = `Player ${index + 1}`;
+        input.dataset.playerIndex = index;
+        nameInputs.appendChild(input);
+      });
+      nameEditorModal.style.display = 'flex';
+    }
+
+    function saveNames() {
+      const inputs = nameInputs.querySelectorAll('.name-input');
+      inputs.forEach(input => {
+        const index = parseInt(input.dataset.playerIndex);
+        if (input.value.trim() !== '') {
+          players[index].name = input.value.trim();
+        }
+      });
+      
+      // Save to localStorage
+      try {
+        localStorage.setItem('kechalPlayers', JSON.stringify(players));
+      } catch (e) {
+        console.error('Failed to save player names:', e);
+      }
+      
+      nameEditorModal.style.display = 'none';
+      render();
+    }
+
+    // Event Listeners
+    editNamesBtn.addEventListener('click', openNameEditor);
+    saveNamesBtn.addEventListener('click', saveNames);
+    cancelNamesBtn.addEventListener('click', () => {
+      nameEditorModal.style.display = 'none';
+    });
+
+    // Add button press effect
+    document.querySelectorAll('.game-button, #reshuffleBtn').forEach(button => {
+      button.addEventListener('mousedown', function() {
+        this.style.transform = 'translateY(5px)';
+        this.style.boxShadow = '0 0 0 rgba(0, 0, 0, 0.3)';
+      });
+      
+      button.addEventListener('mouseup', function() {
+        this.style.transform = '';
+        this.style.boxShadow = '';
+      });
+      
+      button.addEventListener('mouseleave', function() {
+        this.style.transform = '';
+        this.style.boxShadow = '';
+      });
+      
+      // For touch devices
+      button.addEventListener('touchstart', function() {
+        this.style.transform = 'translateY(5px)';
+        this.style.boxShadow = '0 0 0 rgba(0, 0, 0, 0.3)';
+      });
+      
+      button.addEventListener('touchend', function() {
+        this.style.transform = '';
+        this.style.boxShadow = '';
+      });
+    });
+
+    passBtn.addEventListener("click", passTurn);
+    drawBtn.addEventListener("click", drawCard);
+    kechalBtn.addEventListener("click", doKechal);
+
+    // Initialize the game with setup screen
+    initializePlayers();
+  </script>
+</body>
+</html>
