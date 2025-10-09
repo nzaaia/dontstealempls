@@ -13,7 +13,7 @@
       --pass-color: #66551d;
       --draw-color: #1d6625;
       --kechal-color: #5c1d1d;
-      --kechal-active: #3a1212;
+      --kechal-active: #793e3e;
       --card-width: 35px;
       --card-height: 50px;
       --avatar-size: 70px;
@@ -41,19 +41,24 @@
     }
 
     header {
-      background: #d3d3d3;
-      color: #111;
+      background: #251469;
+      color: #e0d9d9;
       padding: 15px;
       font-size: 1.8rem;
       font-weight: bold;
       position: relative;
     }
 
-    .edit-names-btn {
+    .header-controls {
       position: absolute;
       right: 15px;
       top: 50%;
       transform: translateY(-50%);
+      display: flex;
+      gap: 10px;
+    }
+
+    .header-btn {
       background: #444;
       color: white;
       border: none;
@@ -88,10 +93,6 @@
       display: flex;
       flex-direction: column;
       justify-content: center;
-    }
-
-    .player.hidden {
-      display: none;
     }
 
     .avatar {
@@ -288,6 +289,8 @@
       max-width: 90%;
       width: 450px;
       text-align: center;
+      max-height: 90vh;
+      overflow-y: auto;
     }
 
     .name-inputs {
@@ -384,6 +387,11 @@
       border-color: #2ecc71;
     }
 
+    /* Sound Toggle */
+    #soundToggleBtn.muted {
+      background: #5c1d1d;
+    }
+
     /* Mobile responsiveness */
     @media (max-width: 768px) {
       :root {
@@ -425,6 +433,16 @@
       #deckInfo {
         font-size: 1.1rem;
       }
+      
+      .header-controls {
+        flex-direction: column;
+        gap: 5px;
+      }
+      
+      .header-btn {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+      }
     }
 
     @media (max-width: 480px) {
@@ -439,11 +457,6 @@
       header {
         font-size: 1.3rem;
         padding: 10px;
-      }
-      
-      .edit-names-btn {
-        font-size: 0.8rem;
-        padding: 6px 12px;
       }
       
       .players-grid {
@@ -542,8 +555,11 @@
 </head>
 <body>
   <header>
-    Kechal Game
-    <button class="edit-names-btn" id="editNamesBtn">Edit Names</button>
+    Online Kechal
+    <div class="header-controls">
+      <button class="header-btn" id="soundToggleBtn">🔊 Sound On</button>
+      <button class="header-btn" id="editNamesBtn">Edit Names</button>
+    </div>
   </header>
 
   <div class="game-container">
@@ -559,6 +575,9 @@
           <button class="player-count-btn" data-count="5">5 Players</button>
           <button class="player-count-btn" data-count="6" class="active">6 Players</button>
         </div>
+        
+        <div class="name-inputs" id="setupNameInputs"></div>
+        
         <div class="modal-buttons">
           <button id="startGameBtn" class="modal-button">Start Game</button>
         </div>
@@ -612,17 +631,26 @@
 
   <!-- Audio elements for sound effects -->
   <audio id="drawSound" preload="auto">
-    <source src="https://assets.mixkit.co/sfx/preview/mixkit-card-draw-476.mp3" type="audio/mpeg">
+    <source src="pickup.wav" type="audio/wav">
+  
   </audio>
   <audio id="stealSound" preload="auto">
-    <source src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3" type="audio/mpeg">
+    <source src="steal.wav" type="audio/wav">
+   
   </audio>
   <audio id="bustedSound" preload="auto">
-    <source src="https://assets.mixkit.co/sfx/preview/mixkit-funny-fail-low-tone-2876.mp3" type="audio/mpeg">
+    <source src="buster.wav" type="audio/wav">
+    
   </audio>
   <audio id="gameOverSound" preload="auto">
-    <source src="https://assets.mixkit.co/sfx/preview/mixkit-game-show-suspense-waiting-667.mp3" type="audio/mpeg">
+    <source src="gameover.wav" type="audio/wav">
+    
   </audio>
+  <audio id="passSound" preload="auto">
+    <source src="pass (2).wav" type="audio/wav">
+    
+  </audio>
+
 
   <script>
     // PWA Service Worker Registration
@@ -660,14 +688,14 @@
       }
     });
 
-    // Avatar images (using placeholder images - replace with your own)
+    // Cat Avatar Images from the Internet
     const avatarImages = [
-      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop&crop=face',
-      'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
-      'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
-      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face',
-      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face'
+      'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=150&h=150&fit=crop&crop=center', // Cat 1
+      'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=150&h=150&fit=crop&crop=center', // Cat 2
+      'https://images.unsplash.com/photo-1495360010541-f48722b34f7d?w=150&h=150&fit=crop&crop=center', // Cat 3
+      'https://images.unsplash.com/photo-1511044568932-338cba0ad803?w=150&h=150&fit=crop&crop=center', // Cat 4
+      'https://images.unsplash.com/photo-1543852786-1cf6624b9987?w=150&h=150&fit=crop&crop=center', // Cat 5
+      'https://images.unsplash.com/photo-1519052533468-317e06b9c9bf?w=150&h=150&fit=crop&crop=center'  // Cat 6
     ];
 
     // Game Logic
@@ -688,6 +716,10 @@
     const stealSound = document.getElementById('stealSound');
     const bustedSound = document.getElementById('bustedSound');
     const gameOverSound = document.getElementById('gameOverSound');
+    const passSound = document.getElementById('passSound');
+
+    // Sound toggle state
+    let soundEnabled = true;
 
     // Initialize players array
     let players = [];
@@ -707,9 +739,11 @@
     const leaderboardEl = document.getElementById("leaderboard");
     const nameEditorModal = document.getElementById("nameEditorModal");
     const nameInputs = document.getElementById("nameInputs");
+    const setupNameInputs = document.getElementById("setupNameInputs");
     const saveNamesBtn = document.getElementById("saveNamesBtn");
     const cancelNamesBtn = document.getElementById("cancelNamesBtn");
     const editNamesBtn = document.getElementById("editNamesBtn");
+    const soundToggleBtn = document.getElementById("soundToggleBtn");
     const bustedModal = document.getElementById("bustedModal");
     const bustedPopup = document.getElementById("bustedPopup");
     const gameOverModal = document.getElementById("gameOverModal");
@@ -717,33 +751,95 @@
     const startGameBtn = document.getElementById("startGameBtn");
     const playerCountBtns = document.querySelectorAll('.player-count-btn');
 
+    // Sound toggle functionality
+    soundToggleBtn.addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      if (soundEnabled) {
+        soundToggleBtn.textContent = '🔊 Sound On';
+        soundToggleBtn.classList.remove('muted');
+      } else {
+        soundToggleBtn.textContent = '🔇 Sound Off';
+        soundToggleBtn.classList.add('muted');
+      }
+    });
+
+    // Play sound function with toggle check
+    function playSound(sound) {
+      if (soundEnabled) {
+        sound.currentTime = 0;
+        sound.play().catch(e => console.error('Sound play failed:', e));
+      }
+    }
+
     // Player count selection
     playerCountBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         playerCountBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         numberOfPlayers = parseInt(btn.dataset.count);
+        updateSetupNameInputs();
       });
     });
 
+    // Update name inputs in setup modal
+    function updateSetupNameInputs() {
+      setupNameInputs.innerHTML = '';
+      for (let i = 0; i < numberOfPlayers; i++) {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'name-input';
+        input.value = `Player ${i+1}`;
+        input.placeholder = `Player ${i+1}`;
+        input.dataset.playerIndex = i;
+        setupNameInputs.appendChild(input);
+      }
+    }
+
     // Start game button
     startGameBtn.addEventListener('click', () => {
+      // Save names from setup
+      const inputs = setupNameInputs.querySelectorAll('.name-input');
+      const setupNames = [];
+      inputs.forEach(input => {
+        const index = parseInt(input.dataset.playerIndex);
+        setupNames[index] = input.value.trim() || `Player ${index+1}`;
+      });
+      
       setupModal.style.display = 'none';
-      initializePlayers();
+      initializePlayers(setupNames);
       initDeck();
       startTurn();
     });
 
-    function initializePlayers() {
+    function initializePlayers(setupNames = []) {
       // Try to load player names from localStorage
       try {
         const savedPlayers = localStorage.getItem('kechalPlayers');
         if (savedPlayers) {
           const allPlayers = JSON.parse(savedPlayers);
+          // Only take the number of players selected
           players = allPlayers.slice(0, numberOfPlayers);
+          // If we need more players than saved, create new ones
+          if (players.length < numberOfPlayers) {
+            for (let i = players.length; i < numberOfPlayers; i++) {
+              players.push({
+                name: setupNames[i] || `Player ${i+1}`,
+                tableau: [],
+                score: [],
+                avatar: avatarImages[i % avatarImages.length]
+              });
+            }
+          } else {
+            // Update names from setup if provided
+            players.forEach((player, index) => {
+              if (setupNames[index]) {
+                player.name = setupNames[index];
+              }
+            });
+          }
         } else {
           players = Array.from({length: numberOfPlayers}, (_, i) => ({
-            name: `Player ${i+1}`,
+            name: setupNames[i] || `Player ${i+1}`,
             tableau: [],
             score: [],
             avatar: avatarImages[i % avatarImages.length]
@@ -751,14 +847,14 @@
         }
       } catch (e) {
         players = Array.from({length: numberOfPlayers}, (_, i) => ({
-          name: `Player ${i+1}`,
+          name: setupNames[i] || `Player ${i+1}`,
           tableau: [],
           score: [],
           avatar: avatarImages[i % avatarImages.length]
         }));
       }
       
-      // Assign random avatars if not already assigned
+      // Make sure all players have avatars
       players.forEach((player, index) => {
         if (!player.avatar) {
           player.avatar = avatarImages[index % avatarImages.length];
@@ -789,7 +885,10 @@
 
     function render() {
       boardEl.innerHTML = "";
-      players.forEach((p, i) => {
+      
+      // Create exactly the number of players selected
+      for (let i = 0; i < numberOfPlayers; i++) {
+        const p = players[i];
         const div = document.createElement("div");
         div.className = "player";
         div.innerHTML = `
@@ -807,7 +906,7 @@
           c.textContent = card;
           tableauEl.appendChild(c);
         });
-      });
+      }
       deckInfo.textContent = "Cards remaining: " + deck.length;
     }
 
@@ -832,8 +931,7 @@
       let p = players[currentPlayer];
 
       // Play draw sound
-      drawSound.currentTime = 0;
-      drawSound.play();
+      playSound(drawSound);
 
       if (safeDraws >= 3 && turnCards.includes(card)) {
         p.tableau.push(card);
@@ -868,12 +966,11 @@
     }
 
     function showBustedPopup(card) {
-      bustedPopup.textContent = `BUSTED!! on ${card}`;
+      bustedPopup.textContent = `BUSTED!! for ${card}`;
       bustedModal.style.display = "flex";
       
       // Play busted sound
-      bustedSound.currentTime = 0;
-      bustedSound.play();
+      playSound(bustedSound);
       
       // Close on tap/click anywhere
       const closeBusted = () => {
@@ -889,6 +986,7 @@
     }
 
     function passTurn() {
+      playSound(passSound);
       endTurn(false);
     }
 
@@ -899,7 +997,7 @@
       }
       turnCards = [];
       kechalBtn.classList.remove("active");
-      currentPlayer = (currentPlayer+1) % players.length;
+      currentPlayer = (currentPlayer+1) % numberOfPlayers;
       startTurn();
     }
 
@@ -927,8 +1025,7 @@
       
       // Play steal sound
       if (stolenCards.length > 0) {
-        stealSound.currentTime = 0;
-        stealSound.play();
+        playSound(stealSound);
       }
       
       // Animate card stealing
@@ -997,8 +1094,7 @@
 
     function endGame() {
       // Play game over sound
-      gameOverSound.currentTime = 0;
-      gameOverSound.play();
+      playSound(gameOverSound);
       
       // Show game over popup
       gameOverModal.style.display = "flex";
@@ -1024,7 +1120,7 @@
       lastWinner = ranking[0].index;
 
       leaderboardEl.style.display = "block";
-      leaderboardEl.innerHTML = "<h3>Leaderboard</h3>";
+      leaderboardEl.innerHTML = "<h3>Scoreboard</h3>";
       
       ranking.forEach((r,i) => {
         const item = document.createElement("div");
@@ -1045,6 +1141,7 @@
 
     function restartGame() {
       setupModal.style.display = "flex";
+      updateSetupNameInputs();
     }
 
     // Name editing functionality
@@ -1123,7 +1220,7 @@
     kechalBtn.addEventListener("click", doKechal);
 
     // Initialize the game with setup screen
-    initializePlayers();
+    updateSetupNameInputs();
   </script>
 </body>
 </html>
