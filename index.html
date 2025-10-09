@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kechal Game</title>
+  <meta name="theme-color" content="#0d1226">
+  <meta name="description" content="Play Kechal card game with friends">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🃏</text></svg>">
+  <style>
+    :root {
+      --pass-color: #66551d;
+      --draw-color: #1d6625;
+      --kechal-color: #5c1d1d;
+      --kechal-active: #3a1212;
+      --card-width: 30px;
+      --card-height: 40px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0d1226;
+      color: white;
+      text-align: center;
+      padding: 0 10px;
+      overflow-x: hidden;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    header {
+      background: #d3d3d3;
+      color: #111;
+      padding: 10px;
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .edit-names-btn {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #444;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 5px 10px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      justify-items: center;
+      margin: 20px auto;
+      max-width: 800px;
+    }
+
+    .player {
+      background: none;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+      width: 100%;
+    }
+
+    .avatar {
+      width: 60px;
+      height: 60px;
+      background: #b6f2e4;
+      margin: auto;
+      border: 3px solid #123;
+      border-radius: 10px;
+    }
+
+    .player-name {
+      margin: 8px 0;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    .tableau {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 5px;
+      margin-top: 5px;
+      min-height: 45px;
+      position: relative;
+    }
+
+    .card {
+      width: var(--card-width);
+      height: var(--card-height);
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: bold;
+      color: white;
+      transition: transform 0.3s ease;
+    }
+
+    .card.stealing {
+      position: fixed;
+      z-index: 100;
+      animation: stealCard 0.8s forwards;
+    }
+
+    @keyframes stealCard {
+      0% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.2);
+      }
+      100% {
+        transform: scale(1) translate(var(--target-x), var(--target-y));
+      }
+    }
+
+    .controls {
+      margin: 20px auto;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      max-width: 500px;
+    }
+
+    .game-button {
+      padding: 15px 30px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.1s ease;
+      box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
+    }
+
+    .game-button:active {
+      transform: translateY(4px);
+      box-shadow: 0 0 0 rgba(0, 0, 0, 0.3);
+    }
+
+    #passBtn {
+      background: var(--pass-color);
+      color: white;
+    }
+
+    #drawBtn {
+      background: var(--draw-color);
+      color: white;
+    }
+
+    #kechalBtn {
+      background: var(--kechal-color);
+      color: white;
+      margin-top: 10px;
+    }
+
+    #kechalBtn.active {
+      background: var(--kechal-active);
+    }
+
+    #deckInfo {
+      margin: 10px;
+      font-size: 1.2rem;
+    }
+
+    #leaderboard {
+      background: #111;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px auto;
+      max-width: 300px;
+      display: none;
+    }
+
+    .leaderboard-item {
+      display: flex;
+      justify-content: space-between;
+      margin: 10px 0;
+      padding: 5px;
+      border-radius: 5px;
+    }
+
+    .leaderboard-item:nth-child(1) {
+      background: gold;
+      color: black;
+      font-weight: bold;
+    }
+
+    .leaderboard-item:nth-child(2) {
+      background: silver;
+      color: black;
+    }
+
+    .leaderboard-item:nth-child(3) {
+      background: #cd7f32;
+      color: black;
+    }
+
+    #reshuffleBtn {
+      margin-top: 15px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      background: #444;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      box-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);
+      position: relative;
+      transition: all 0.1s ease;
+    }
+
+    #reshuffleBtn:active {
+      transform: translateY(3px);
+      box-shadow: 0 0 0 rgba(0, 0, 0, 0.3);
+    }
+
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: #222;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 90%;
+      width: 400px;
+      text-align: center;
+    }
+
+    .name-inputs {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin: 20px 0;
+    }
+
+    .name-input {
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #555;
+      background: #333;
+      color: white;
+    }
+
+    .modal-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .modal-button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    #saveNamesBtn {
+      background: #1d6625;
+      color: white;
+    }
+
+    #cancelNamesBtn {
+      background: #66551d;
+      color: white;
+    }
+
+    /* Busted popup */
+    #bustedPopup {
+      background: #5c1d1d;
+      color: white;
+      font-size: 2rem;
+      font-weight: bold;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+      .board {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+      
+      .player {
+        max-width: 300px;
+      }
+      
+      .controls {
+        flex-direction: column;
+        align-items: center;
+      }
+      
+      .game-button {
+        width: 200px;
+      }
+      
+      #kechalBtn {
+        margin-top: 0;
+      }
+      
+      :root {
+        --card-width: 25px;
+        --card-height: 35px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      header {
+        font-size: 1.2rem;
+      }
+      
+      .player-name {
+        font-size: 0.9rem;
+      }
+      
+      .game-button {
+        padding: 12px 25px;
+        font-size: 1rem;
+      }
+      
+      .modal-content {
+        width: 95%;
+      }
+    }
+
+    /* PWA specific styles */
+    #installPrompt {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #333;
+      color: white;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      z-index: 1001;
+      text-align: center;
+    }
+
+    #installBtn {
+      background: #1d6625;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 5px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    Kechal Game
+    <button class="edit-names-btn" id="editNamesBtn">Edit Names</button>
+  </header>
+
+  <div class="board" id="board"></div>
+
+  <div class="controls">
+    <button id="passBtn" class="game-button">PASS</button>
+    <button id="drawBtn" class="game-button">DRAW</button>
+  </div>
+  <button id="kechalBtn" class="game-button">KECHAL</button>
+
+  <div id="deckInfo">Cards remaining: 60</div>
+  <div id="leaderboard"></div>
+
+  <!-- Name Editor Modal -->
+  <div class="modal" id="nameEditorModal">
+    <div class="modal-content">
+      <h2>Edit Player Names</h2>
+      <div class="name-inputs" id="nameInputs"></div>
+      <div class="modal-buttons">
+        <button id="saveNamesBtn" class="modal-button">Save Names</button>
+        <button id="cancelNamesBtn" class="modal-button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Busted Popup -->
+  <div class="modal" id="bustedModal">
+    <div class="modal-content" id="bustedPopup"></div>
+  </div>
+
+  <!-- PWA Install Prompt -->
+  <div id="installPrompt">
+    <p>Install Kechal Game for a better experience!</p>
+    <button id="installBtn">Install</button>
+  </div>
+
+  <script>
+    // PWA Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => {
+            console.log('SW registered: ', registration);
+          })
+          .catch(registrationError => {
+            console.log('SW registration failed: ', registrationError);
+          });
+      });
+    }
+
+    // PWA Install Prompt
+    let deferredPrompt;
+    const installPrompt = document.getElementById('installPrompt');
+    const installBtn = document.getElementById('installBtn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installPrompt.style.display = 'block';
+    });
+
+    installBtn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          installPrompt.style.display = 'none';
+        }
+        deferredPrompt = null;
+      }
+    });
+
+    // Game Logic
+    const colors = {
+      1: "red",
+      2: "teal",
+      3: "lightgreen",
+      4: "pink",
+      5: "purple",
+      7: "yellow",
+      8: "brown",
+      9: "blue",
+      10: "black"
+    };
+
+    // Try to load player names from localStorage
+    let players = [];
+    try {
+      const savedPlayers = localStorage.getItem('kechalPlayers');
+      if (savedPlayers) {
+        players = JSON.parse(savedPlayers);
+      } else {
+        players = Array.from({length: 6}, (_, i) => ({
+          name: `Player ${i+1}`,
+          tableau: [],
+          score: []
+        }));
+      }
+    } catch (e) {
+      players = Array.from({length: 6}, (_, i) => ({
+        name: `Player ${i+1}`,
+        tableau: [],
+        score: []
+      }));
+    }
+
+    let currentPlayer = 0;
+    let deck = [];
+    let turnCards = [];
+    let safeDraws = 0;
+    let lastWinner = 0;
+
+    const boardEl = document.getElementById("board");
+    const passBtn = document.getElementById("passBtn");
+    const drawBtn = document.getElementById("drawBtn");
+    const kechalBtn = document.getElementById("kechalBtn");
+    const deckInfo = document.getElementById("deckInfo");
+    const leaderboardEl = document.getElementById("leaderboard");
+    const nameEditorModal = document.getElementById("nameEditorModal");
+    const nameInputs = document.getElementById("nameInputs");
+    const saveNamesBtn = document.getElementById("saveNamesBtn");
+    const cancelNamesBtn = document.getElementById("cancelNamesBtn");
+    const editNamesBtn = document.getElementById("editNamesBtn");
+    const bustedModal = document.getElementById("bustedModal");
+    const bustedPopup = document.getElementById("bustedPopup");
+
+    function initDeck() {
+      deck = [];
+      for (let n of [1,2,3,4,5,7,8,9,10]) {
+        for (let i=0;i<6;i++) {
+          deck.push(n);
+        }
+      }
+      deck = shuffle(deck);
+      deckInfo.textContent = "Cards remaining: " + deck.length;
+      leaderboardEl.style.display = "none";
+    }
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function render() {
+      boardEl.innerHTML = "";
+      players.forEach((p, i) => {
+        const div = document.createElement("div");
+        div.className = "player";
+        div.innerHTML = `
+          <div class="avatar"></div>
+          <div class="player-name" data-player-index="${i}">${p.name}${i===currentPlayer ? " (Your turn)" : ""}</div>
+          <div class="tableau" id="tableau-${i}"></div>
+        `;
+        boardEl.appendChild(div);
+
+        const tableauEl = div.querySelector(".tableau");
+        p.tableau.forEach(card => {
+          const c = document.createElement("div");
+          c.className = "card";
+          c.style.background = colors[card] || "gray";
+          c.textContent = card;
+          tableauEl.appendChild(c);
+        });
+      });
+      deckInfo.textContent = "Cards remaining: " + deck.length;
+    }
+
+    function startTurn() {
+      let p = players[currentPlayer];
+      if (p.tableau.length > 0) {
+        p.score.push(...p.tableau);
+        p.tableau = [];
+      }
+      turnCards = [];
+      safeDraws = 0;
+      kechalBtn.classList.remove("active");
+      render();
+    }
+
+    function drawCard() {
+      if (deck.length === 0) {
+        endGame();
+        return;
+      }
+      const card = deck.pop();
+      let p = players[currentPlayer];
+
+      if (safeDraws >= 3 && turnCards.includes(card)) {
+        p.tableau.push(card);
+        render();
+        showBustedPopup(card);
+        turnCards = [];
+        endTurn(true);
+        return;
+      }
+
+      turnCards.push(card);
+      p.tableau.push(card);
+      safeDraws++;
+
+      // Check for steal possibility
+      let stealPossible = players.some((other, i) =>
+        i !== currentPlayer && other.tableau.includes(card)
+      );
+      
+      if (stealPossible) {
+        kechalBtn.classList.add("active");
+      } else {
+        kechalBtn.classList.remove("active");
+      }
+
+      render();
+      
+      // Check if this was the last card
+      if (deck.length === 0) {
+        setTimeout(endGame, 500);
+      }
+    }
+
+    function showBustedPopup(card) {
+      bustedPopup.textContent = `BUSTED!! on ${card}`;
+      bustedModal.style.display = "flex";
+      
+      // Close on tap/click anywhere
+      const closeBusted = () => {
+        bustedModal.style.display = "none";
+        document.removeEventListener('click', closeBusted);
+        document.removeEventListener('touchstart', closeBusted);
+      };
+      
+      setTimeout(() => {
+        document.addEventListener('click', closeBusted);
+        document.addEventListener('touchstart', closeBusted);
+      }, 100);
+    }
+
+    function passTurn() {
+      endTurn(false);
+    }
+
+    function endTurn(busted) {
+      let p = players[currentPlayer];
+      if (busted) {
+        p.tableau = [];
+      }
+      turnCards = [];
+      kechalBtn.classList.remove("active");
+      currentPlayer = (currentPlayer+1) % players.length;
+      startTurn();
+    }
+
+    function doKechal() {
+      const lastCard = turnCards[turnCards.length-1];
+      let stolenCards = [];
+      
+      // Collect all cards to steal
+      players.forEach((other,i) => {
+        if (i !== currentPlayer) {
+          other.tableau.forEach(card => {
+            if (card === lastCard) {
+              stolenCards.push({card, fromPlayer: i});
+            }
+          });
+        }
+      });
+      
+      // Remove cards from other players
+      players.forEach((other,i) => {
+        if (i !== currentPlayer) {
+          other.tableau = other.tableau.filter(c => c !== lastCard);
+        }
+      });
+      
+      // Animate card stealing
+      animateCardStealing(stolenCards);
+      
+      kechalBtn.classList.remove("active");
+    }
+
+    function animateCardStealing(stolenCards) {
+      if (stolenCards.length === 0) return;
+      
+      // Get current player's tableau position
+      const currentPlayerTableau = document.getElementById(`tableau-${currentPlayer}`);
+      const currentPlayerRect = currentPlayerTableau.getBoundingClientRect();
+      
+      stolenCards.forEach((stolen, index) => {
+        // Find the card element in the original player's tableau
+        const fromPlayerTableau = document.getElementById(`tableau-${stolen.fromPlayer}`);
+        const cardElements = fromPlayerTableau.querySelectorAll('.card');
+        
+        let cardElement = null;
+        for (let el of cardElements) {
+          if (el.textContent == stolen.card) {
+            cardElement = el;
+            break;
+          }
+        }
+        
+        if (cardElement) {
+          // Calculate animation target
+          const cardRect = cardElement.getBoundingClientRect();
+          const targetX = currentPlayerRect.left - cardRect.left + (currentPlayerRect.width / 2) - (cardRect.width / 2);
+          const targetY = currentPlayerRect.top - cardRect.top + (currentPlayerRect.height / 2) - (cardRect.height / 2);
+          
+          // Apply animation
+          cardElement.classList.add('stealing');
+          cardElement.style.setProperty('--target-x', `${targetX}px`);
+          cardElement.style.setProperty('--target-y', `${targetY}px`);
+          
+          // After animation completes, update the game state
+          setTimeout(() => {
+            players[currentPlayer].tableau.push(stolen.card);
+            render();
+          }, 800 + (index * 100));
+        } else {
+          // Fallback if card element not found
+          players[currentPlayer].tableau.push(stolen.card);
+        }
+      });
+      
+      // Final render after all animations
+      setTimeout(() => {
+        render();
+      }, 800 + (stolenCards.length * 100));
+    }
+
+    function endGame() {
+      let ranking = players.map((p, index) => ({
+        name: p.name,
+        total: p.score.reduce((a,b)=>a+b,0),
+        index: index
+      }));
+      ranking.sort((a,b)=>b.total-a.total);
+      lastWinner = ranking[0].index;
+
+      leaderboardEl.style.display = "block";
+      leaderboardEl.innerHTML = "<h3>Leaderboard</h3>";
+      
+      ranking.forEach((r,i) => {
+        const item = document.createElement("div");
+        item.className = "leaderboard-item";
+        item.innerHTML = `
+          <span>${i+1}. ${r.name}</span>
+          <span>${r.total}</span>
+        `;
+        leaderboardEl.appendChild(item);
+      });
+      
+      const reshuffleBtn = document.createElement("button");
+      reshuffleBtn.id = "reshuffleBtn";
+      reshuffleBtn.textContent = "Reshuffle";
+      reshuffleBtn.addEventListener("click", restartGame);
+      leaderboardEl.appendChild(reshuffleBtn);
+    }
+
+    function restartGame() {
+      players.forEach(p => { p.tableau=[]; p.score=[]; });
+      initDeck();
+      currentPlayer = lastWinner;
+      startTurn();
+    }
+
+    // Name editing functionality
+    function openNameEditor() {
+      nameInputs.innerHTML = '';
+      players.forEach((player, index) => {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'name-input';
+        input.value = player.name;
+        input.placeholder = `Player ${index + 1}`;
+        input.dataset.playerIndex = index;
+        nameInputs.appendChild(input);
+      });
+      nameEditorModal.style.display = 'flex';
+    }
+
+    function saveNames() {
+      const inputs = nameInputs.querySelectorAll('.name-input');
+      inputs.forEach(input => {
+        const index = parseInt(input.dataset.playerIndex);
+        if (input.value.trim() !== '') {
+          players[index].name = input.value.trim();
+        }
+      });
+      
+      // Save to localStorage
+      try {
+        localStorage.setItem('kechalPlayers', JSON.stringify(players));
+      } catch (e) {
+        console.error('Failed to save player names:', e);
+      }
+      
+      nameEditorModal.style.display = 'none';
+      render();
+    }
+
+    // Event Listeners
+    editNamesBtn.addEventListener('click', openNameEditor);
+    saveNamesBtn.addEventListener('click', saveNames);
+    cancelNamesBtn.addEventListener('click', () => {
+      nameEditorModal.style.display = 'none';
+    });
+
+    // Add button press effect
+    document.querySelectorAll('.game-button, #reshuffleBtn').forEach(button => {
+      button.addEventListener('mousedown', function() {
+        this.style.transform = 'translateY(4px)';
+        this.style.boxShadow = '0 0 0 rgba(0, 0, 0, 0.3)';
+      });
+      
+      button.addEventListener('mouseup', function() {
+        this.style.transform = '';
+        this.style.boxShadow = '';
+      });
+      
+      button.addEventListener('mouseleave', function() {
+        this.style.transform = '';
+        this.style.boxShadow = '';
+      });
+      
+      // For touch devices
+      button.addEventListener('touchstart', function() {
+        this.style.transform = 'translateY(4px)';
+        this.style.boxShadow = '0 0 0 rgba(0, 0, 0, 0.3)';
+      });
+      
+      button.addEventListener('touchend', function() {
+        this.style.transform = '';
+        this.style.boxShadow = '';
+      });
+    });
+
+    passBtn.addEventListener("click", passTurn);
+    drawBtn.addEventListener("click", drawCard);
+    kechalBtn.addEventListener("click", doKechal);
+
+    // Initialize the game
+    initDeck();
+    startTurn();
+  </script>
+</body>
+</html>
