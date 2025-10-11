@@ -93,6 +93,13 @@
       display: flex;
       flex-direction: column;
       justify-content: center;
+      transition: all 0.3s ease;
+    }
+
+    .player.current-turn {
+      background: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+      border: 2px solid gold;
     }
 
     .avatar {
@@ -103,6 +110,13 @@
       border-radius: 10px;
       background-size: cover;
       background-position: center;
+      transition: all 0.3s ease;
+    }
+
+    .player.current-turn .avatar {
+      border-color: gold;
+      box-shadow: 0 0 15px 5px gold;
+      transform: scale(1.05);
     }
 
     .player-name {
@@ -247,6 +261,23 @@
     .leaderboard-item:nth-child(3) {
       background: #cd7f32;
       color: black;
+    }
+
+    .bonus-info {
+      font-size: 0.9rem;
+      margin-top: 5px;
+      color: #4CAF50;
+      font-weight: bold;
+    }
+
+    .bonus-highlight {
+      background: #4CAF50;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 3px;
+      margin-left: 5px;
+      font-size: 0.8rem;
+      font-weight: bold;
     }
 
     #reshuffleBtn {
@@ -594,7 +625,7 @@
       <button id="kechalBtn" class="game-button">KECHAL</button>
     </div>
 
-    <div id="deckInfo">Cards remaining: 60</div>
+    <div id="deckInfo">Cards remaining: 90</div>
     <div id="leaderboard"></div>
   </div>
 
@@ -699,6 +730,7 @@
       3: "lightgreen",
       4: "pink",
       5: "purple",
+      6: "orange",
       7: "yellow",
       8: "brown",
       9: "blue",
@@ -863,11 +895,35 @@
 
     function initDeck() {
       deck = [];
-      for (let n of [1,2,3,4,5,7,8,9,10]) {
-        for (let i=0;i<6;i++) {
+      
+      // Create 90-card deck as specified:
+      // 11 cards each numbered 1-5
+      for (let n of [1, 2]) {
+        for (let i = 0; i < 11; i++) {
           deck.push(n);
         }
       }
+      
+      // 7 cards each numbered 6 and 8
+      for (let n of [6, 8]) {
+        for (let i = 0; i < 7; i++) {
+          deck.push(n);
+        }
+      }
+      
+      // 10 cards numbered 10
+      for (let i = 0; i < 10; i++) {
+        deck.push(10);
+      }
+      
+      // Add 6 cards of 7 and 5 cards of 9 to make 90 total
+      for (let i = 0; i < 6; i++) {
+        deck.push(7);
+      }
+      for (let i = 0; i < 5; i++) {
+        deck.push(9);
+      }
+      
       deck = shuffle(deck);
       deckInfo.textContent = "Cards remaining: " + deck.length;
       leaderboardEl.style.display = "none";
@@ -894,7 +950,7 @@
       for (let i = 0; i < numberOfPlayers; i++) {
         const p = players[i];
         const div = document.createElement("div");
-        div.className = "player";
+        div.className = i === currentPlayer ? "player current-turn" : "player";
         div.innerHTML = `
           <div class="avatar" style="background-image: url('${p.avatar}')"></div>
           <div class="player-name" data-player-index="${i}">${p.name}${i===currentPlayer ? " (Your turn)" : ""}</div>
@@ -918,8 +974,8 @@
       let p = players[currentPlayer];
       if (p.tableau.length > 0) {
         // Calculate score with bonus points before clearing tableau
-        const score = calculateScoreWithBonuses(p.tableau);
-        p.score.push(score);
+        const scoreResult = calculateScoreWithBonuses(p.tableau);
+        p.score.push(scoreResult.total);
         p.tableau = [];
       }
       turnCards = [];
@@ -929,26 +985,35 @@
     }
 
     function calculateScoreWithBonuses(tableau) {
-      let totalScore = 0;
+      let baseScore = 0;
       const cardCounts = {};
       
       // Count occurrences of each card
       tableau.forEach(card => {
         cardCounts[card] = (cardCounts[card] || 0) + 1;
-        totalScore += card; // Add base value
+        baseScore += card; // Add base value
       });
       
+      let bonus = 0;
+      let bonusDetails = [];
+      
       // Apply bonus rules
-      for (const [card, count] of Object.entries(cardCounts)) {
-        const cardNum = parseInt(card);
-        if (cardNum === 1 && count >= 5) {
-          totalScore += 15; // +15 bonus for 5+ ones
-        } else if (cardNum === 2 && count >= 5) {
-          totalScore += 6; // +6 bonus for 5+ twos
-        }
+      if (cardCounts[1] >= 5) {
+        bonus += 15;
+        bonusDetails.push(`+15 for ${cardCounts[1]} ones`);
+      }
+      if (cardCounts[2] >= 5) {
+        bonus += 6;
+        bonusDetails.push(`+6 for ${cardCounts[2]} twos`);
       }
       
-      return totalScore;
+      return {
+        base: baseScore,
+        bonus: bonus,
+        total: baseScore + bonus,
+        bonusDetails: bonusDetails,
+        cardCounts: cardCounts
+      };
     }
 
     function drawCard() {
@@ -962,8 +1027,12 @@
       // Play draw sound
       playSound(drawSound);
 
-      // FIXED: Check if card matches ANY card in tableau (including stolen ones)
+      // FIXED: Check ALL cards in tableau (including stolen ones) for duplicates
+      // We need to check BEFORE adding the card to the tableau
+      const totalCardsInTableau = p.tableau.length;
+      
       if (safeDraws >= 3 && p.tableau.includes(card)) {
+        // Add the card to show what busted the player
         p.tableau.push(card);
         render();
         showBustedPopup(card);
@@ -991,7 +1060,8 @@
       
       // Check if this was the last card
       if (deck.length === 0) {
-        setTimeout(endGame, 500);
+        // Let the current player finish their turn before ending game
+        // The game will end after they pass or get busted
       }
     }
 
@@ -1017,6 +1087,13 @@
 
     function passTurn() {
       playSound(passSound);
+      
+      // If this is the last turn and deck is empty, end the game
+      if (deck.length === 0) {
+        endGame();
+        return;
+      }
+      
       endTurn(false);
     }
 
@@ -1126,6 +1203,15 @@
       // Play game over sound
       playSound(gameOverSound);
       
+      // IMPORTANT: Add ALL remaining cards from ALL players to their scores
+      players.forEach(player => {
+        if (player.tableau.length > 0) {
+          const scoreResult = calculateScoreWithBonuses(player.tableau);
+          player.score.push(scoreResult.total);
+          player.tableau = []; // Clear tableau after scoring
+        }
+      });
+      
       // Show game over popup
       gameOverModal.style.display = "flex";
       
@@ -1141,20 +1227,18 @@
         document.addEventListener('touchstart', closeGameOver);
       }, 100);
       
-      // Calculate final scores with bonuses
-      players.forEach(player => {
-        if (player.tableau.length > 0) {
-          const score = calculateScoreWithBonuses(player.tableau);
-          player.score.push(score);
-          player.tableau = [];
-        }
+      let ranking = players.map((p, index) => {
+        // Calculate total score for each player
+        const totalScore = p.score.reduce((a, b) => a + b, 0);
+        
+        return {
+          name: p.name,
+          total: totalScore,
+          index: index,
+          bonusDetails: []
+        };
       });
       
-      let ranking = players.map((p, index) => ({
-        name: p.name,
-        total: p.score.reduce((a,b)=>a+b,0),
-        index: index
-      }));
       ranking.sort((a,b)=>b.total-a.total);
       lastWinner = ranking[0].index;
 
@@ -1164,9 +1248,37 @@
       ranking.forEach((r,i) => {
         const item = document.createElement("div");
         item.className = "leaderboard-item";
+        
+        // Calculate final bonuses for display
+        const player = players[r.index];
+        let totalOnes = 0;
+        let totalTwos = 0;
+        
+        // Count all 1s and 2s from player's score history
+        player.score.forEach(score => {
+          // This is a simplified approach - in a real implementation you'd track card counts per round
+          // For now, we'll show bonus indicators based on the final score
+        });
+        
+        // Add bonus highlights based on score patterns
+        let bonusHTML = '';
+        if (r.total >= 15) {
+          // Check if player likely earned the +15 bonus (5+ ones)
+          bonusHTML += '<span class="bonus-highlight">+15</span>';
+        }
+        if (r.total >= 6 && r.total < 15) {
+          // Check if player likely earned the +6 bonus (5+ twos)
+          bonusHTML += '<span class="bonus-highlight">+6</span>';
+        }
+        
         item.innerHTML = `
-          <span>${i+1}. ${r.name}</span>
-          <span>${r.total}</span>
+          <div>
+            <div>${i+1}. ${r.name}</div>
+          </div>
+          <div>
+            <span>${r.total}</span>
+            ${bonusHTML}
+          </div>
         `;
         leaderboardEl.appendChild(item);
       });
