@@ -632,25 +632,19 @@
   <!-- Audio elements for sound effects -->
   <audio id="drawSound" preload="auto">
     <source src="pickup.wav" type="audio/wav">
-  
   </audio>
   <audio id="stealSound" preload="auto">
     <source src="steal.wav" type="audio/wav">
-   
   </audio>
   <audio id="bustedSound" preload="auto">
     <source src="buster.wav" type="audio/wav">
-    
   </audio>
   <audio id="gameOverSound" preload="auto">
     <source src="gameover.wav" type="audio/wav">
-    
   </audio>
   <audio id="passSound" preload="auto">
     <source src="pass (2).wav" type="audio/wav">
-    
   </audio>
-
 
   <script>
     // PWA Service Worker Registration
@@ -788,7 +782,9 @@
         const input = document.createElement('input');
         input.type = 'text';
         input.className = 'name-input';
-        input.value = `Player ${i+1}`;
+        // Load saved names if available
+        const savedName = players[i] ? players[i].name : `Player ${i+1}`;
+        input.value = savedName;
         input.placeholder = `Player ${i+1}`;
         input.dataset.playerIndex = i;
         setupNameInputs.appendChild(input);
@@ -835,6 +831,9 @@
               if (setupNames[index]) {
                 player.name = setupNames[index];
               }
+              // Reset tableau and score for new game
+              player.tableau = [];
+              player.score = [];
             });
           }
         } else {
@@ -873,6 +872,11 @@
       deckInfo.textContent = "Cards remaining: " + deck.length;
       leaderboardEl.style.display = "none";
       gameOverModal.style.display = "none";
+      
+      // Reset game state
+      currentPlayer = 0;
+      turnCards = [];
+      safeDraws = 0;
     }
 
     function shuffle(array) {
@@ -913,13 +917,38 @@
     function startTurn() {
       let p = players[currentPlayer];
       if (p.tableau.length > 0) {
-        p.score.push(...p.tableau);
+        // Calculate score with bonus points before clearing tableau
+        const score = calculateScoreWithBonuses(p.tableau);
+        p.score.push(score);
         p.tableau = [];
       }
       turnCards = [];
       safeDraws = 0;
       kechalBtn.classList.remove("active");
       render();
+    }
+
+    function calculateScoreWithBonuses(tableau) {
+      let totalScore = 0;
+      const cardCounts = {};
+      
+      // Count occurrences of each card
+      tableau.forEach(card => {
+        cardCounts[card] = (cardCounts[card] || 0) + 1;
+        totalScore += card; // Add base value
+      });
+      
+      // Apply bonus rules
+      for (const [card, count] of Object.entries(cardCounts)) {
+        const cardNum = parseInt(card);
+        if (cardNum === 1 && count >= 5) {
+          totalScore += 15; // +15 bonus for 5+ ones
+        } else if (cardNum === 2 && count >= 5) {
+          totalScore += 6; // +6 bonus for 5+ twos
+        }
+      }
+      
+      return totalScore;
     }
 
     function drawCard() {
@@ -933,7 +962,8 @@
       // Play draw sound
       playSound(drawSound);
 
-      if (safeDraws >= 3 && turnCards.includes(card)) {
+      // FIXED: Check if card matches ANY card in tableau (including stolen ones)
+      if (safeDraws >= 3 && p.tableau.includes(card)) {
         p.tableau.push(card);
         render();
         showBustedPopup(card);
@@ -1111,6 +1141,15 @@
         document.addEventListener('touchstart', closeGameOver);
       }, 100);
       
+      // Calculate final scores with bonuses
+      players.forEach(player => {
+        if (player.tableau.length > 0) {
+          const score = calculateScoreWithBonuses(player.tableau);
+          player.score.push(score);
+          player.tableau = [];
+        }
+      });
+      
       let ranking = players.map((p, index) => ({
         name: p.name,
         total: p.score.reduce((a,b)=>a+b,0),
@@ -1140,8 +1179,21 @@
     }
 
     function restartGame() {
+      // Save current player names before restarting
+      const currentNames = players.map(p => p.name);
+      
       setupModal.style.display = "flex";
       updateSetupNameInputs();
+      
+      // Preserve the names in the setup inputs
+      setTimeout(() => {
+        const inputs = setupNameInputs.querySelectorAll('.name-input');
+        inputs.forEach((input, index) => {
+          if (currentNames[index]) {
+            input.value = currentNames[index];
+          }
+        });
+      }, 100);
     }
 
     // Name editing functionality
