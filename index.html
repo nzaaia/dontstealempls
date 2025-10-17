@@ -912,7 +912,7 @@
     function showBustedPopup(card) {
   bustedPopup.textContent = `BUSTED!! for ${card}`;
   bustedModal.style.display = "flex";
-  
+  playSound(bustedSound);
   // Close on tap/click anywhere
   const closeBusted = () => {
     bustedModal.style.display = "none";
