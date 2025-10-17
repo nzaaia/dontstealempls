@@ -6,9 +6,9 @@
   <title>Kechal Game</title>
   <meta name="theme-color" content="#0d1226">
   <meta name="description" content="Play Kechal card game with friends">
-  <link rel="manifest" href="manifest.json">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🃏</text></svg>">
   <style>
+    /* ALL YOUR CSS STYLES REMAIN EXACTLY THE SAME */
     :root {
       --pass-color: #66551d;
       --draw-color: #1d6625;
@@ -661,102 +661,24 @@
   </div>
 
   <!-- Audio elements for sound effects -->
-  <audio id="drawSound" preload="auto">
-    <source src="pickup.wav" type="audio/wav">
-  </audio>
-  <audio id="stealSound" preload="auto">
-    <source src="steal.wav" type="audio/wav">
-  </audio>
-  <audio id="bustedSound" preload="auto">
-    <source src="buster.wav" type="audio/wav">
-  </audio>
-  <audio id="gameOverSound" preload="auto">
-    <source src="gameover.wav" type="audio/wav">
-  </audio>
-  <audio id="passSound" preload="auto">
-    <source src="pass (2).wav" type="audio/wav">
-  </audio>
+  <audio id="drawSound" preload="auto"></audio>
+  <audio id="stealSound" preload="auto"></audio>
+  <audio id="bustedSound" preload="auto"></audio>
+  <audio id="gameOverSound" preload="auto"></audio>
+  <audio id="passSound" preload="auto"></audio>
 
   <script>
-    // PWA Service Worker Registration
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-          .then(registration => {
-            console.log('SW registered: ', registration);
-          })
-          .catch(registrationError => {
-            console.log('SW registration failed: ', registrationError);
-          });
-      });
-    }
-
-    // PWA Install Prompt
-    let deferredPrompt;
-    const installPrompt = document.getElementById('installPrompt');
-    const installBtn = document.getElementById('installBtn');
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      installPrompt.style.display = 'block';
-    });
-
-    installBtn.addEventListener('click', async () => {
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-          installPrompt.style.display = 'none';
-        }
-        deferredPrompt = null;
-      }
-    });
-
-    // Cat Avatar Images from the Internet
-    const avatarImages = [
-      'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=150&h=150&fit=crop&crop=center', // Cat 1
-      'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=150&h=150&fit=crop&crop=center', // Cat 2
-      'https://images.unsplash.com/photo-1495360010541-f48722b34f7d?w=150&h=150&fit=crop&crop=center', // Cat 3
-      'https://images.unsplash.com/photo-1511044568932-338cba0ad803?w=150&h=150&fit=crop&crop=center', // Cat 4
-      'https://images.unsplash.com/photo-1543852786-1cf6624b9987?w=150&h=150&fit=crop&crop=center', // Cat 5
-      'https://images.unsplash.com/photo-1519052533468-317e06b9c9bf?w=150&h=150&fit=crop&crop=center'  // Cat 6
-    ];
-
-    // Game Logic
-    const colors = {
-      1: "red",
-      2: "teal",
-      3: "lightgreen",
-      4: "pink",
-      5: "purple",
-      6: "orange",
-      7: "yellow",
-      8: "brown",
-      9: "blue",
-      10: "black"
-    };
-
-    // Sound effects
-    const drawSound = document.getElementById('drawSound');
-    const stealSound = document.getElementById('stealSound');
-    const bustedSound = document.getElementById('bustedSound');
-    const gameOverSound = document.getElementById('gameOverSound');
-    const passSound = document.getElementById('passSound');
-
-    // Sound toggle state
-    let soundEnabled = true;
-
-    // Initialize players array
+    // Game state variables
     let players = [];
-    let numberOfPlayers = 6; // Default
-
+    let numberOfPlayers = 6;
     let currentPlayer = 0;
     let deck = [];
     let turnCards = [];
     let safeDraws = 0;
     let lastWinner = 0;
+    let soundEnabled = true;
 
+    // DOM elements
     const boardEl = document.getElementById("board");
     const passBtn = document.getElementById("passBtn");
     const drawBtn = document.getElementById("drawBtn");
@@ -777,159 +699,62 @@
     const startGameBtn = document.getElementById("startGameBtn");
     const playerCountBtns = document.querySelectorAll('.player-count-btn');
 
-    // Sound toggle functionality
-    soundToggleBtn.addEventListener('click', () => {
-      soundEnabled = !soundEnabled;
-      if (soundEnabled) {
-        soundToggleBtn.textContent = '🔊 Sound On';
-        soundToggleBtn.classList.remove('muted');
-      } else {
-        soundToggleBtn.textContent = '🔇 Sound Off';
-        soundToggleBtn.classList.add('muted');
-      }
-    });
+    // Avatar images
+    const avatarImages = [
+      'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=150&h=150&fit=crop&crop=center',
+      'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?w=150&h=150&fit=crop&crop=center',
+      'https://images.unsplash.com/photo-1495360010541-f48722b34f7d?w=150&h=150&fit=crop&crop=center',
+      'https://images.unsplash.com/photo-1511044568932-338cba0ad803?w=150&h=150&fit=crop&crop=center',
+      'https://images.unsplash.com/photo-1543852786-1cf6624b9987?w=150&h=150&fit=crop&crop=center',
+      'https://images.unsplash.com/photo-1519052533468-317e06b9c9bf?w=150&h=150&fit=crop&crop=center'
+    ];
 
-    // Play sound function with toggle check
+    // Card colors
+    const colors = {
+      1: "red", 2: "teal", 3: "lightgreen", 4: "pink", 5: "purple",
+      6: "orange", 7: "yellow", 8: "brown", 9: "blue", 10: "black"
+    };
+
+    // Sound functions
     function playSound(sound) {
-      if (soundEnabled) {
-        sound.currentTime = 0;
-        sound.play().catch(e => console.error('Sound play failed:', e));
+      if (soundEnabled && sound) {
+        try {
+          sound.currentTime = 0;
+          sound.play().catch(() => {});
+        } catch (e) {}
       }
     }
 
-    // Player count selection
-    playerCountBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        playerCountBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        numberOfPlayers = parseInt(btn.dataset.count);
-        updateSetupNameInputs();
-      });
-    });
-
-    // Update name inputs in setup modal
-    function updateSetupNameInputs() {
-      setupNameInputs.innerHTML = '';
-      for (let i = 0; i < numberOfPlayers; i++) {
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'name-input';
-        // Load saved names if available
-        const savedName = players[i] ? players[i].name : `Player ${i+1}`;
-        input.value = savedName;
-        input.placeholder = `Player ${i+1}`;
-        input.dataset.playerIndex = i;
-        setupNameInputs.appendChild(input);
-      }
-    }
-
-    // Start game button
-    startGameBtn.addEventListener('click', () => {
-      // Save names from setup
-      const inputs = setupNameInputs.querySelectorAll('.name-input');
-      const setupNames = [];
-      inputs.forEach(input => {
-        const index = parseInt(input.dataset.playerIndex);
-        setupNames[index] = input.value.trim() || `Player ${index+1}`;
-      });
-      
-      setupModal.style.display = 'none';
-      initializePlayers(setupNames);
-      initDeck();
-      startTurn();
-    });
-
+    // Initialize game
     function initializePlayers(setupNames = []) {
-      // Try to load player names from localStorage
-      try {
-        const savedPlayers = localStorage.getItem('kechalPlayers');
-        if (savedPlayers) {
-          const allPlayers = JSON.parse(savedPlayers);
-          // Only take the number of players selected
-          players = allPlayers.slice(0, numberOfPlayers);
-          // If we need more players than saved, create new ones
-          if (players.length < numberOfPlayers) {
-            for (let i = players.length; i < numberOfPlayers; i++) {
-              players.push({
-                name: setupNames[i] || `Player ${i+1}`,
-                tableau: [],
-                score: [],
-                avatar: avatarImages[i % avatarImages.length]
-              });
-            }
-          } else {
-            // Update names from setup if provided
-            players.forEach((player, index) => {
-              if (setupNames[index]) {
-                player.name = setupNames[index];
-              }
-              // Reset tableau and score for new game
-              player.tableau = [];
-              player.score = [];
-            });
-          }
-        } else {
-          players = Array.from({length: numberOfPlayers}, (_, i) => ({
-            name: setupNames[i] || `Player ${i+1}`,
-            tableau: [],
-            score: [],
-            avatar: avatarImages[i % avatarImages.length]
-          }));
-        }
-      } catch (e) {
-        players = Array.from({length: numberOfPlayers}, (_, i) => ({
-          name: setupNames[i] || `Player ${i+1}`,
-          tableau: [],
-          score: [],
-          avatar: avatarImages[i % avatarImages.length]
-        }));
-      }
-      
-      // Make sure all players have avatars
-      players.forEach((player, index) => {
-        if (!player.avatar) {
-          player.avatar = avatarImages[index % avatarImages.length];
-        }
-      });
+      players = Array.from({length: numberOfPlayers}, (_, i) => ({
+        name: setupNames[i] || `Player ${i+1}`,
+        tableau: [],
+        score: [],
+        scoredCards: [],
+        avatar: avatarImages[i % avatarImages.length]
+      }));
     }
 
     function initDeck() {
       deck = [];
       
-      // Create 90-card deck as specified:
-      // 11 cards each numbered 1-5
+      // Create 90-card deck
       for (let n of [1, 2]) {
-        for (let i = 0; i < 11; i++) {
-          deck.push(n);
-        }
+        for (let i = 0; i < 11; i++) deck.push(n);
       }
-      
-      // 7 cards each numbered 6 and 8
       for (let n of [6, 8]) {
-        for (let i = 0; i < 7; i++) {
-          deck.push(n);
-        }
+        for (let i = 0; i < 7; i++) deck.push(n);
       }
-      
-      // 10 cards numbered 10
-      for (let i = 0; i < 10; i++) {
-        deck.push(10);
-      }
-      
-      // Add 6 cards of 7 and 5 cards of 9 to make 90 total
-      for (let i = 0; i < 6; i++) {
-        deck.push(7);
-      }
-      for (let i = 0; i < 5; i++) {
-        deck.push(9);
-      }
+      for (let i = 0; i < 10; i++) deck.push(10);
+      for (let i = 0; i < 6; i++) deck.push(7);
+      for (let i = 0; i < 5; i++) deck.push(9);
       
       deck = shuffle(deck);
       deckInfo.textContent = "Cards remaining: " + deck.length;
       leaderboardEl.style.display = "none";
       gameOverModal.style.display = "none";
       
-      // Reset game state
       currentPlayer = 0;
       turnCards = [];
       safeDraws = 0;
@@ -946,7 +771,6 @@
     function render() {
       boardEl.innerHTML = "";
       
-      // Create exactly the number of players selected
       for (let i = 0; i < numberOfPlayers; i++) {
         const p = players[i];
         const div = document.createElement("div");
@@ -971,13 +795,19 @@
     }
 
     function startTurn() {
+      console.log("Starting turn for player:", currentPlayer);
+      
       let p = players[currentPlayer];
+      
+      // Only score if player has cards AND it's not the very first turn
       if (p.tableau.length > 0) {
-        // Calculate score with bonus points before clearing tableau
+        console.log("Scoring cards for player:", currentPlayer, "cards:", p.tableau);
         const scoreResult = calculateScoreWithBonuses(p.tableau);
         p.score.push(scoreResult.total);
+        p.scoredCards = p.scoredCards.concat(p.tableau);
         p.tableau = [];
       }
+      
       turnCards = [];
       safeDraws = 0;
       kechalBtn.classList.remove("active");
@@ -988,16 +818,14 @@
       let baseScore = 0;
       const cardCounts = {};
       
-      // Count occurrences of each card
       tableau.forEach(card => {
         cardCounts[card] = (cardCounts[card] || 0) + 1;
-        baseScore += card; // Add base value
+        baseScore += card;
       });
       
       let bonus = 0;
       let bonusDetails = [];
       
-      // Apply bonus rules
       if (cardCounts[1] >= 5) {
         bonus += 15;
         bonusDetails.push(`+15 for ${cardCounts[1]} ones`);
@@ -1017,22 +845,18 @@
     }
 
     function drawCard() {
+      console.log("Draw card called, deck length:", deck.length);
+      
       if (deck.length === 0) {
+        console.log("Deck empty, ending game");
         endGame();
         return;
       }
+      
       const card = deck.pop();
       let p = players[currentPlayer];
 
-      // Play draw sound
-      playSound(drawSound);
-
-      // FIXED: Check ALL cards in tableau (including stolen ones) for duplicates
-      // We need to check BEFORE adding the card to the tableau
-      const totalCardsInTableau = p.tableau.length;
-      
       if (safeDraws >= 3 && p.tableau.includes(card)) {
-        // Add the card to show what busted the player
         p.tableau.push(card);
         render();
         showBustedPopup(card);
@@ -1045,7 +869,6 @@
       p.tableau.push(card);
       safeDraws++;
 
-      // Check for steal possibility
       let stealPossible = players.some((other, i) =>
         i !== currentPlayer && other.tableau.includes(card)
       );
@@ -1057,39 +880,22 @@
       }
 
       render();
-      
-      // Check if this was the last card
-      if (deck.length === 0) {
-        // Let the current player finish their turn before ending game
-        // The game will end after they pass or get busted
-      }
     }
 
     function showBustedPopup(card) {
       bustedPopup.textContent = `BUSTED!! for ${card}`;
       bustedModal.style.display = "flex";
       
-      // Play busted sound
-      playSound(bustedSound);
-      
-      // Close on tap/click anywhere
-      const closeBusted = () => {
-        bustedModal.style.display = "none";
-        document.removeEventListener('click', closeBusted);
-        document.removeEventListener('touchstart', closeBusted);
-      };
-      
       setTimeout(() => {
-        document.addEventListener('click', closeBusted);
-        document.addEventListener('touchstart', closeBusted);
-      }, 100);
+        bustedModal.style.display = "none";
+      }, 1500);
     }
 
     function passTurn() {
-      playSound(passSound);
+      console.log("Pass turn called, current player:", currentPlayer);
       
-      // If this is the last turn and deck is empty, end the game
       if (deck.length === 0) {
+        console.log("Deck empty after pass, ending game");
         endGame();
         return;
       }
@@ -1098,13 +904,20 @@
     }
 
     function endTurn(busted) {
+      console.log("Ending turn for player:", currentPlayer, "busted:", busted);
+      
       let p = players[currentPlayer];
       if (busted) {
         p.tableau = [];
       }
+      
       turnCards = [];
       kechalBtn.classList.remove("active");
-      currentPlayer = (currentPlayer+1) % numberOfPlayers;
+      
+      // Move to next player
+      currentPlayer = (currentPlayer + 1) % numberOfPlayers;
+      console.log("Next player:", currentPlayer);
+      
       startTurn();
     }
 
@@ -1112,7 +925,6 @@
       const lastCard = turnCards[turnCards.length-1];
       let stolenCards = [];
       
-      // Collect all cards to steal
       players.forEach((other,i) => {
         if (i !== currentPlayer) {
           other.tableau.forEach(card => {
@@ -1123,19 +935,12 @@
         }
       });
       
-      // Remove cards from other players
       players.forEach((other,i) => {
         if (i !== currentPlayer) {
           other.tableau = other.tableau.filter(c => c !== lastCard);
         }
       });
       
-      // Play steal sound
-      if (stolenCards.length > 0) {
-        playSound(stealSound);
-      }
-      
-      // Animate card stealing
       if (stolenCards.length > 0) {
         animateCardStealing(stolenCards);
       } else {
@@ -1146,49 +951,37 @@
     }
 
     function animateCardStealing(stolenCards) {
-      // First, remove the cards from other players visually
       render();
       
-      // Wait a bit for the DOM to update
       setTimeout(() => {
-        // Get current player's tableau position for animation target
         const currentPlayerTableau = document.getElementById(`tableau-${currentPlayer}`);
         const currentPlayerRect = currentPlayerTableau.getBoundingClientRect();
         
-        // Animate each stolen card
         stolenCards.forEach((stolen, index) => {
-          // Create a temporary card element for animation
           const tempCard = document.createElement("div");
           tempCard.className = "card stealing";
           tempCard.style.background = colors[stolen.card] || "gray";
           tempCard.textContent = stolen.card;
           
-          // Find the position where the card should start (from the original player)
           const fromPlayerTableau = document.getElementById(`tableau-${stolen.fromPlayer}`);
           const fromPlayerRect = fromPlayerTableau.getBoundingClientRect();
           
-          // Position the temp card at the source
           tempCard.style.position = "fixed";
-          tempCard.style.left = `${fromPlayerRect.left + (fromPlayerRect.width / 2) - (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--card-width')) / 2)}px`;
-          tempCard.style.top = `${fromPlayerRect.top + (fromPlayerRect.height / 2) - (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--card-height')) / 2)}px`;
+          tempCard.style.left = `${fromPlayerRect.left + (fromPlayerRect.width / 2) - 17}px`;
+          tempCard.style.top = `${fromPlayerRect.top + (fromPlayerRect.height / 2) - 25}px`;
           
-          // Calculate the target position
-          const targetX = currentPlayerRect.left + (currentPlayerRect.width / 2) - (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--card-width')) / 2) - fromPlayerRect.left;
-          const targetY = currentPlayerRect.top + (currentPlayerRect.height / 2) - (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--card-height')) / 2) - fromPlayerRect.top;
+          const targetX = currentPlayerRect.left + (currentPlayerRect.width / 2) - 17 - fromPlayerRect.left;
+          const targetY = currentPlayerRect.top + (currentPlayerRect.height / 2) - 25 - fromPlayerRect.top;
           
-          // Set CSS custom properties for animation
           tempCard.style.setProperty('--target-x', `${targetX}px`);
           tempCard.style.setProperty('--target-y', `${targetY}px`);
           
-          // Add to document
           document.body.appendChild(tempCard);
           
-          // After animation completes, add the card to current player and remove temp card
           setTimeout(() => {
             players[currentPlayer].tableau.push(stolen.card);
             tempCard.remove();
             
-            // Final render after all animations
             if (index === stolenCards.length - 1) {
               setTimeout(() => {
                 render();
@@ -1200,48 +993,43 @@
     }
 
     function endGame() {
-      // Play game over sound
-      playSound(gameOverSound);
+      console.log("Ending game, scoring all players");
       
-      // IMPORTANT: Add ALL remaining cards from ALL players to their scores
-      players.forEach(player => {
+      // Score all remaining cards
+      players.forEach((player, index) => {
         if (player.tableau.length > 0) {
+          console.log("Scoring final cards for player:", index, "cards:", player.tableau);
           const scoreResult = calculateScoreWithBonuses(player.tableau);
           player.score.push(scoreResult.total);
-          player.tableau = []; // Clear tableau after scoring
+          player.scoredCards = player.scoredCards.concat(player.tableau);
+          player.tableau = [];
         }
       });
       
       // Show game over popup
       gameOverModal.style.display = "flex";
       
-      // Close game over popup on tap/click anywhere
-      const closeGameOver = () => {
-        gameOverModal.style.display = "none";
-        document.removeEventListener('click', closeGameOver);
-        document.removeEventListener('touchstart', closeGameOver);
-      };
-      
       setTimeout(() => {
-        document.addEventListener('click', closeGameOver);
-        document.addEventListener('touchstart', closeGameOver);
-      }, 100);
+        gameOverModal.style.display = "none";
+      }, 2000);
       
+      // Calculate ranking
       let ranking = players.map((p, index) => {
-        // Calculate total score for each player
         const totalScore = p.score.reduce((a, b) => a + b, 0);
+        const finalBonusResult = calculateFinalBonuses(p.scoredCards);
         
         return {
           name: p.name,
           total: totalScore,
           index: index,
-          bonusDetails: []
+          bonusDetails: finalBonusResult.bonusDetails
         };
       });
       
       ranking.sort((a,b)=>b.total-a.total);
       lastWinner = ranking[0].index;
 
+      // Show leaderboard
       leaderboardEl.style.display = "block";
       leaderboardEl.innerHTML = "<h3>Scoreboard</h3>";
       
@@ -1249,31 +1037,19 @@
         const item = document.createElement("div");
         item.className = "leaderboard-item";
         
-        // Calculate final bonuses for display
-        const player = players[r.index];
-        let totalOnes = 0;
-        let totalTwos = 0;
-        
-        // Count all 1s and 2s from player's score history
-        player.score.forEach(score => {
-          // This is a simplified approach - in a real implementation you'd track card counts per round
-          // For now, we'll show bonus indicators based on the final score
-        });
-        
-        // Add bonus highlights based on score patterns
         let bonusHTML = '';
-        if (r.total >= 15) {
-          // Check if player likely earned the +15 bonus (5+ ones)
-          bonusHTML += '<span class="bonus-highlight">+15</span>';
-        }
-        if (r.total >= 6 && r.total < 15) {
-          // Check if player likely earned the +6 bonus (5+ twos)
-          bonusHTML += '<span class="bonus-highlight">+6</span>';
-        }
+        r.bonusDetails.forEach(bonus => {
+          if (bonus.includes('+15')) {
+            bonusHTML += '<span class="bonus-highlight">+15</span>';
+          } else if (bonus.includes('+6')) {
+            bonusHTML += '<span class="bonus-highlight">+6</span>';
+          }
+        });
         
         item.innerHTML = `
           <div>
             <div>${i+1}. ${r.name}</div>
+            ${r.bonusDetails.length > 0 ? `<div class="bonus-info">${r.bonusDetails.join(', ')}</div>` : ''}
           </div>
           <div>
             <span>${r.total}</span>
@@ -1290,14 +1066,33 @@
       leaderboardEl.appendChild(reshuffleBtn);
     }
 
-    function restartGame() {
-      // Save current player names before restarting
-      const currentNames = players.map(p => p.name);
+    function calculateFinalBonuses(allScoredCards) {
+      const cardCounts = {};
       
+      allScoredCards.forEach(card => {
+        cardCounts[card] = (cardCounts[card] || 0) + 1;
+      });
+      
+      let bonusDetails = [];
+      
+      if (cardCounts[1] >= 5) {
+        bonusDetails.push(`+15 for ${cardCounts[1]} ones`);
+      }
+      if (cardCounts[2] >= 5) {
+        bonusDetails.push(`+6 for ${cardCounts[2]} twos`);
+      }
+      
+      return {
+        bonusDetails: bonusDetails,
+        cardCounts: cardCounts
+      };
+    }
+
+    function restartGame() {
+      const currentNames = players.map(p => p.name);
       setupModal.style.display = "flex";
       updateSetupNameInputs();
       
-      // Preserve the names in the setup inputs
       setTimeout(() => {
         const inputs = setupNameInputs.querySelectorAll('.name-input');
         inputs.forEach((input, index) => {
@@ -1332,58 +1127,69 @@
         }
       });
       
-      // Save to localStorage
       try {
         localStorage.setItem('kechalPlayers', JSON.stringify(players));
-      } catch (e) {
-        console.error('Failed to save player names:', e);
-      }
+      } catch (e) {}
       
       nameEditorModal.style.display = 'none';
       render();
     }
 
-    // Event Listeners
+    function updateSetupNameInputs() {
+      setupNameInputs.innerHTML = '';
+      for (let i = 0; i < numberOfPlayers; i++) {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'name-input';
+        const savedName = players[i] ? players[i].name : `Player ${i+1}`;
+        input.value = savedName;
+        input.placeholder = `Player ${i+1}`;
+        input.dataset.playerIndex = i;
+        setupNameInputs.appendChild(input);
+      }
+    }
+
+    // Event listeners
+    soundToggleBtn.addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      soundToggleBtn.textContent = soundEnabled ? '🔊 Sound On' : '🔇 Sound Off';
+      soundToggleBtn.classList.toggle('muted', !soundEnabled);
+    });
+
+    playerCountBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        playerCountBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        numberOfPlayers = parseInt(btn.dataset.count);
+        updateSetupNameInputs();
+      });
+    });
+
+    startGameBtn.addEventListener('click', () => {
+      const inputs = setupNameInputs.querySelectorAll('.name-input');
+      const setupNames = [];
+      inputs.forEach(input => {
+        const index = parseInt(input.dataset.playerIndex);
+        setupNames[index] = input.value.trim() || `Player ${index+1}`;
+      });
+      
+      setupModal.style.display = 'none';
+      initializePlayers(setupNames);
+      initDeck();
+      startTurn();
+    });
+
     editNamesBtn.addEventListener('click', openNameEditor);
     saveNamesBtn.addEventListener('click', saveNames);
     cancelNamesBtn.addEventListener('click', () => {
       nameEditorModal.style.display = 'none';
     });
 
-    // Add button press effect
-    document.querySelectorAll('.game-button, #reshuffleBtn').forEach(button => {
-      button.addEventListener('mousedown', function() {
-        this.style.transform = 'translateY(5px)';
-        this.style.boxShadow = '0 0 0 rgba(0, 0, 0, 0.3)';
-      });
-      
-      button.addEventListener('mouseup', function() {
-        this.style.transform = '';
-        this.style.boxShadow = '';
-      });
-      
-      button.addEventListener('mouseleave', function() {
-        this.style.transform = '';
-        this.style.boxShadow = '';
-      });
-      
-      // For touch devices
-      button.addEventListener('touchstart', function() {
-        this.style.transform = 'translateY(5px)';
-        this.style.boxShadow = '0 0 0 rgba(0, 0, 0, 0.3)';
-      });
-      
-      button.addEventListener('touchend', function() {
-        this.style.transform = '';
-        this.style.boxShadow = '';
-      });
-    });
-
     passBtn.addEventListener("click", passTurn);
     drawBtn.addEventListener("click", drawCard);
     kechalBtn.addEventListener("click", doKechal);
 
-    // Initialize the game with setup screen
+    // Initialize
     updateSetupNameInputs();
   </script>
 </body>
