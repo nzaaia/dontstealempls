@@ -900,15 +900,31 @@
       render();
     }
 
-    function showBustedPopup(card) {
-      playSound(bustedSound);
-      bustedPopup.textContent = `BUSTED!! for ${card}`;
-      bustedModal.style.display = "flex";
+    // function showBustedPopup(card) {
+    //   playSound(bustedSound);
+    //   bustedPopup.textContent = `BUSTED!! for ${card}`;
+    //   bustedModal.style.display = "flex";
       
-      setTimeout(() => {
-        bustedModal.style.display = "none";
-      }, 1500);
-    }
+    //   setTimeout(() => {
+    //     bustedModal.style.display = "none";
+    //   }, 1500);
+    // }
+    function showBustedPopup(card) {
+  bustedPopup.textContent = `BUSTED!! for ${card}`;
+  bustedModal.style.display = "flex";
+  
+  // Close on tap/click anywhere
+  const closeBusted = () => {
+    bustedModal.style.display = "none";
+    document.removeEventListener('click', closeBusted);
+    document.removeEventListener('touchstart', closeBusted);
+  };
+  
+  setTimeout(() => {
+    document.addEventListener('click', closeBusted);
+    document.addEventListener('touchstart', closeBusted);
+  }, 100);
+}
 
     function passTurn() {
       playSound(passSound);
@@ -1028,12 +1044,20 @@
       });
       
       // Show game over popup
-      gameOverModal.style.display = "flex";
-      
-      setTimeout(() => {
-        gameOverModal.style.display = "none";
-      }, 2000);
-      
+      // Show game over popup
+gameOverModal.style.display = "flex";
+
+// Close on tap/click anywhere
+const closeGameOver = () => {
+  gameOverModal.style.display = "none";
+  document.removeEventListener('click', closeGameOver);
+  document.removeEventListener('touchstart', closeGameOver);
+};
+
+setTimeout(() => {
+  document.addEventListener('click', closeGameOver);
+  document.addEventListener('touchstart', closeGameOver);
+}, 100);
       // Calculate ranking
       let ranking = players.map((p, index) => {
         const totalScore = p.score.reduce((a, b) => a + b, 0);
